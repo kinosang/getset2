@@ -16,6 +16,7 @@ pub struct GenParams {
     pub vis: Option<Visibility>,
     pub is_const: Option<bool>,
     pub as_ref: Option<bool>,
+    pub into: Option<bool>,
 }
 
 #[derive(PartialEq, Eq, Hash, Copy, Clone)]
@@ -153,22 +154,46 @@ pub fn gen_method(field: &Field, params: GenParams) -> TokenStream2 {
             }
         }
         GenMode::Set => {
-            quote! {
-                #(#doc)*
-                #[inline(always)]
-                #visibility #const_kw fn #fn_name(&mut self, val: #ty) -> &mut Self {
-                    self.#field_name = val;
-                    self
+            if params.into == Some(true) {
+                quote! {
+                    #(#doc)*
+                    #[inline(always)]
+                    #visibility #const_kw fn #fn_name<I: Into<#ty>>(&mut self, val: I) -> &mut Self {
+                        let val = val.into();
+                        self.#field_name = val;
+                        self
+                    }
+                }
+            } else {
+                quote! {
+                    #(#doc)*
+                    #[inline(always)]
+                    #visibility #const_kw fn #fn_name(&mut self, val: #ty) -> &mut Self {
+                        self.#field_name = val;
+                        self
+                    }
                 }
             }
         }
         GenMode::SetWith => {
-            quote! {
-                #(#doc)*
-                #[inline(always)]
-                #visibility #const_kw fn #fn_name(mut self, val: #ty) -> Self {
-                    self.#field_name = val;
-                    self
+            if params.into == Some(true) {
+                quote! {
+                    #(#doc)*
+                    #[inline(always)]
+                    #visibility #const_kw fn #fn_name<I: Into<#ty>>(mut self, val: I) -> Self {
+                        let val = val.into();
+                        self.#field_name = val;
+                        self
+                    }
+                }
+            } else {
+                quote! {
+                    #(#doc)*
+                    #[inline(always)]
+                    #visibility #const_kw fn #fn_name(mut self, val: #ty) -> Self {
+                        self.#field_name = val;
+                        self
+                    }
                 }
             }
         }
